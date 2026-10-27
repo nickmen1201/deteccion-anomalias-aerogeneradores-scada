@@ -1,49 +1,57 @@
 # Contexto del proyecto
 
-## Enunciado
-- **Título:** Detección temprana de anomalías en aerogeneradores con datos SCADA mediante modelos de comportamiento normal.
-- **Pregunta:** ¿Con cuánta anticipación puede un modelo entrenado solo con operación sana detectar una falla de un componente en un aerogenerador?
-- **Esfuerzo:** alrededor de 10 horas.
-- **Entregables:** un notebook de Python reproducible y un informe con resultados y análisis.
+## Encargo (texto original)
 
-## Datos: CARE to Compare
-Es un conjunto público de datos SCADA de aerogeneradores publicado por Gück, Roelofs y Faulstich (2024) junto con la métrica **CARE**. Se descarga desde Zenodo buscando "CARE to Compare".
+**Título:** Detección temprana de anomalías en aerogeneradores con datos SCADA mediante modelos de comportamiento normal.
 
-- Tiene 3 parques (A, B y C) con 95 datasets en total. Cada dataset corresponde a una turbina y a un evento.
-- Cada dataset trae un **periodo de entrenamiento** y un **periodo de predicción**, marcados en la columna `train_test`. El evento cae dentro del periodo de predicción.
-- El evento puede ser una anomalía documentada (falla de un componente) o un caso normal, que no tiene falla. Esta información está en `event_info.csv`, con las columnas `event_label`, `event_start`, `event_end` y la descripción del componente.
-- La columna `status_type_id` indica el estado de operación. El 0 es operación normal. Los demás códigos marcan potencia reducida (derating), ralentí, mantenimiento, parada u otros estados.
-- El parque **A** tiene unas 86 variables, el B unas 257 y el C unas 957. Los sensores tienen nombres anónimos (`sensor_N_avg`), y `feature_description.csv` explica qué mide cada uno.
-- La resolución de los datos es de 10 minutos.
+**Pregunta:** ¿con cuánta anticipación puede un modelo entrenado únicamente con operación sana detectar una falla de componente en un aerogenerador?
 
-**Decisión de alcance:** se usará **solo el Parque A** porque es el más pequeño, tiene variables interpretables y basta para responder la pregunta dentro de las 10 horas. Los parques B y C quedan como trabajo futuro.
+**Metodología (alrededor de 10 horas):**
+1. Carga y limpieza de los datos, filtrando paradas y operación con potencia limitada.
+2. Modelo de comportamiento normal: predicción de la temperatura de un componente a partir de potencia, velocidad de viento, temperatura ambiente y velocidad de rotación. Se compara una regresión base con un modelo de gradient boosting.
+3. Detección: análisis del residuo con umbrales tipo EWMA o CUSUM.
+4. Evaluación contra las fallas documentadas: anticipación de la detección, falsas alarmas y la métrica CARE definida por los autores del conjunto, lo que permite comparar con resultados publicados.
 
-## Métrica CARE
-Hay que verificar la definición exacta en el paper y el código de los autores. CARE combina 4 componentes:
-- **Coverage:** F-score puntual (β = 0,5) en los datasets con anomalía.
-- **Accuracy:** porcentaje de puntos sin alarma en los datasets normales. Mide las falsas alarmas.
-- **Reliability:** F-score a nivel de evento (β = 0,5), que indica si se detectó o no cada evento.
-- **Earliness:** premia la detección temprana dentro de la ventana previa a la falla.
+**Entregables:** notebook de Python reproducible e informe con resultados y análisis.
 
-Un evento cuenta como detectado cuando un **contador de criticidad** supera un umbral. El contador sube con cada punto anómalo en estado normal y baja en caso contrario. El paper usa un umbral del orden de 72 pasos, unas 12 horas. Si la implementación oficial está publicada, se usará esa en lugar de reimplementarla.
+**El proyecto está terminado cuando** la pregunta queda respondida con números y existen los dos entregables. Todo lo demás es secundario.
 
-## Enfoque técnico
-Para cada dataset del Parque A:
-1. **Limpieza:** se entrena solo con las filas `train_test == train` que estén en `status_type_id == 0` y tengan potencia mayor que 0. Así se excluyen paradas, derating y datos faltantes.
-2. **Modelo de comportamiento normal (NBM):** predice la temperatura de los componentes (caja multiplicadora, rodamientos del generador, devanados y transformador) a partir de la potencia, la velocidad del viento, la temperatura ambiente y la velocidad del rotor.
-   - El modelo base es una `LinearRegression`.
-   - El modelo principal es un `HistGradientBoostingRegressor` de scikit-learn, que no requiere instalar nada extra.
-3. **Residuo:** se calcula la diferencia entre el valor real y el predicho, y se estandariza con la media y la desviación del residuo en el entrenamiento. El puntaje de anomalía es el **máximo |z| entre los componentes**.
-4. **Detección:** se suaviza el puntaje con un **EWMA** y se fija como umbral un cuantil alto del EWMA en el entrenamiento, por ejemplo el p99,5. Después se aplica el contador de criticidad.
-5. **Evaluación:** se calcula la anticipación como `event_start − primera detección`, se cuentan las falsas alarmas en los datasets normales y se obtiene CARE. Todo se compara entre el modelo base y el gradient boosting.
+---
 
-## Viabilidad
-**Sí, el proyecto es viable en unas 10 horas** si se cumplen estas condiciones:
-- Se limita al Parque A.
-- Se usa un solo pipeline genérico que recorre todos los datasets, sin ajustes manuales por turbina.
-- Se usa scikit-learn sin ajuste fino de hiperparámetros.
-- Se usa EWMA como método único de detección. CUSUM es opcional y solo se agrega si sobra tiempo.
+## Hechos verificados (fuentes al final)
 
-**Riesgos:**
-- La definición de CARE puede no coincidir con la del paper. Para mitigarlo, se debe usar el código oficial o validar la implementación propia contra los valores de referencia publicados.
-- Algunas fallas pueden no estar en componentes con sensor de temperatura. Esto se reportará como limitación.
+**Dataset "CARE to Compare"** (Gück, Roelofs y Faulstich, 2024)
+- La última versión en Zenodo es la v6, del 9 de julio de 2025. Corresponde al registro 15846963, tiene licencia CC BY-SA 4.0 y un único archivo de 5,5 GB:
+  `https://zenodo.org/records/15846963/files/CARE_To_Compare.zip?download=1`, con md5 `2547b58c21ac8c242d13232860cf500c`.
+- Cada sub-dataset es un CSV con resolución de 10 minutos. Incluye ~1 año de entrenamiento y entre 4 y 98 días de predicción, separados por la columna `train_test`. También trae un id, una marca de tiempo, `asset_id` y `status_type_id`.
+- **Parque A** (tabla 3.2 del paper): 22 datasets, 5 turbinas y 86 variables. El paper reporta 11 anomalías y 11 normales, pero la nota de la v5 de Zenodo reetiquetó el evento 51 como anomalía. **El recuento real se toma de `event_info.csv`.**
+- Los nombres de los sensores están anonimizados. Solo la potencia y el viento se reconocen por su nombre. **La temperatura ambiente, la velocidad del rotor y las temperaturas de los componentes se identifican con `feature_description.csv`**, que incluye una descripción y la unidad de cada sensor.
+- Según el paper, `status_type_id` 0 (normal) y 2 (ralentí) cuentan como normales, y 1, 3, 4 y 5 no. La nota de Zenodo v6 agrega: *"in wind farm A status_type_id labels can be ignored while evaluating prediction time frames"*.
+
+**Métrica CARE** (paper, sección 4.1)
+- **Coverage:** F_β puntual con β = 0,5, calculado en los datasets de anomalía.
+- **Accuracy:** tn / (fp + tn), calculado en los datasets normales.
+- **Reliability:** F_β (β = 0,5) a nivel de evento. Un evento se considera alarma si su contador de criticidad supera **72** (12 h de anomalías seguidas). El contador sube 1 por cada punto anómalo y baja 1 (sin llegar a menos de 0) por cada punto no anómalo. Los puntos con estado anormal no lo modifican.
+- **Earliness:** media ponderada de las detecciones dentro del evento. Pesan 1 en la primera mitad del evento y su peso baja linealmente hasta 0 en la segunda mitad.
+- **Combinación:** `WA = (Cov + Earl + Rel + 2·Acc) / 5`. CARE vale 0 si no se detecta ninguna anomalía, vale Acc si Acc < 0,5 y en los demás casos vale WA.
+- **Referencias publicadas** (95 datasets, no solo el Parque A): "todo normal" y "todo anomalía" obtienen 0, el azar obtiene 0,5 (es el mínimo a superar) e Isolation Forest queda por debajo de 0,5. El autoencoder de los autores obtiene **0,66**.
+- Existe el paquete `energy-fault-detector` en PyPI (v0.8.1), del mismo grupo de autores. **Falta verificar** si trae una implementación de CARE. Si la trae, se usa esa. Si no, se implementa a partir de las fórmulas anteriores.
+
+## Decisiones (lo más simple que sigue siendo válido)
+
+| Tema | Decisión | Motivo |
+|---|---|---|
+| Alcance | Solo el Parque A (22 datasets) | Es el parque más pequeño y basta para responder la pregunta. |
+| Datos | Extraer del zip únicamente la carpeta del Parque A | Ahorra disco y tiempo. |
+| Limpieza para entrenar | `train_test == train`, `status_type_id == 0`, potencia > 0 y sin NaN | Elimina paradas y operación con potencia limitada (punto 1). |
+| Variable objetivo | Una temperatura de componente por dataset: la del componente dañado si `event_description` lo indica, y si no, una temperatura fija (p. ej. la de la caja multiplicadora) | Cumple el punto 2 tal como está redactado ("un componente"). |
+| Entradas | Potencia, viento, temperatura ambiente y velocidad del rotor | Son las que pide el punto 2. |
+| Modelos | `LinearRegression` frente a `HistGradientBoostingRegressor` (scikit-learn, sin ajuste de hiperparámetros) | Ya está instalado y cumple la comparación pedida. |
+| Detección | Residuo estandarizado → EWMA → umbral en el cuantil 99,5 del EWMA del entrenamiento | Un solo método cubre el punto 3. CUSUM es opcional. |
+| Evaluación | Anticipación = `event_start − primera alarma` (criticidad > 72), falsas alarmas en los datasets normales y CARE | Responde la pregunta y cubre el punto 4. |
+| Ejecución | Claude ejecuta todo de forma autónoma. Cada dato que no esté verificado se comprueba en los archivos antes de usarlo | Así se evita inventar información. |
+
+## Fuentes
+- Paper: https://arxiv.org/abs/2404.10320
+- Zenodo v6: https://zenodo.org/records/15846963
+- FAQ de los autores: https://aefdi.github.io/EnergyFaultDetector/care2compare_faq.html

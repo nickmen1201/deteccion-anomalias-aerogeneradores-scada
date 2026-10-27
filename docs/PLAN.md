@@ -1,69 +1,40 @@
-# Plan por fases y criterios de aceptación
+# Plan de ejecución autónoma
 
-Se busca la máxima automatización: toda la lógica vive en `src/pipeline.py` y el notebook solo la llama y muestra los resultados. Al ejecutar **Run All** en un entorno limpio se debe reproducir todo el trabajo.
+Claude ejecuta todas las fases seguidas, sin intervención del usuario. Cada criterio se comprueba ejecutando código y no se marca como cumplido sin evidencia. Si algún dato del CONTEXTO no coincide con los archivos reales, se corrige el CONTEXTO y se continúa.
 
-Estructura:
 ```
-data/raw/           # CARE to Compare descomprimido (en .gitignore)
-src/pipeline.py     # carga, limpieza, modelos, detección y métricas
-notebooks/main.ipynb
-outputs/            # figuras y tablas generadas
-informe/informe.md  # se exporta a PDF
+src/pipeline.py         # toda la lógica
+notebooks/main.ipynb    # llama al pipeline y muestra los resultados (entregable 1)
+outputs/                # tablas (CSV) y figuras (PNG)
+informe/informe.md      # informe (entregable 2)
+data/                   # el zip y el Parque A extraído (en .gitignore)
 requirements.txt
 ```
 
----
+## Fase 1: Datos
+- [ ] El zip v6 está descargado y su md5 coincide con `2547b58c…500c`. Solo se extrae el Parque A.
+- [ ] Se confirmó a partir de los archivos el recuento de anomalías y normales del Parque A, con el separador de los CSV y los nombres reales de las columnas.
+- [ ] Las 4 entradas y las temperaturas de componentes quedaron identificadas con `feature_description.csv`. El mapeo se guardó en `outputs/variables.csv`.
+- [ ] Se revisó si `energy-fault-detector` implementa CARE y la decisión quedó anotada en el CONTEXTO.
+- [ ] La limpieza (punto 1) está aplicada y `outputs/resumen_datasets.csv` muestra las filas de cada dataset antes y después de limpiar.
 
-## Fase 1: Datos (~2 h)
-**Objetivo:** cargar y limpiar cualquier dataset del Parque A con una sola función.
+## Fase 2: Modelo de comportamiento normal
+- [ ] Hay un modelo lineal y un GBM por dataset, entrenados solo con datos sanos.
+- [ ] Se validó con el último 20 % del entrenamiento, separado por tiempo, y `outputs/metricas_modelo.csv` contiene el RMSE de cada modelo.
+- [ ] Hay una figura de valor real contra predicho para un dataset con falla.
 
-Criterios de aceptación:
-- [ ] `requirements.txt` existe y se instala sin errores.
-- [ ] Una función descarga y descomprime el dataset desde Zenodo, o el README explica cómo hacerlo manualmente.
-- [ ] `load_dataset(id)` devuelve el DataFrame con un índice temporal y la fila correspondiente de `event_info`.
-- [ ] Las columnas de entrada (potencia, viento, temperatura ambiente, rotor) y las de salida (temperaturas de componentes) quedan mapeadas en un diccionario a partir de `feature_description.csv`.
-- [ ] `clean(df)` deja en el entrenamiento solo `status_type_id == 0`, potencia mayor que 0 y filas sin NaN.
-- [ ] El notebook muestra una tabla resumen de los datasets del Parque A con su id, tipo de evento (anomalía o normal), componente y filas de entrenamiento antes y después de la limpieza.
+## Fase 3: Detección
+- [ ] Se calculan el residuo, el EWMA y el umbral fijado solo con datos de entrenamiento, y a partir de ellos la alarma punto a punto.
+- [ ] El contador de criticidad entrega la fecha de la primera alarma de cada dataset.
+- [ ] Hay una figura por cada anomalía con el EWMA, el umbral, la primera alarma y `event_start`.
 
-## Fase 2: Modelo de comportamiento normal (~3 h)
-**Objetivo:** predecir las temperaturas de los componentes con dos modelos y compararlos.
+## Fase 4: Evaluación
+- [ ] `outputs/resultados.csv` contiene, por dataset y modelo, la anticipación en días, si hubo detección y si hubo falsa alarma.
+- [ ] Se calculó CARE con sus 4 componentes para cada modelo. Antes se validó la implementación con los casos de referencia del paper: "todo normal" debe dar 0 y "todo anomalía" debe dar 0.
+- [ ] Hay una tabla resumen con la mediana de la anticipación, las anomalías detectadas, las falsas alarmas y CARE, comparada con el 0,5 (azar) y el 0,66 (autoencoder) del paper.
 
-Criterios de aceptación:
-- [ ] `fit_nbm(train, model="linear" | "gbm")` entrena un modelo por cada temperatura objetivo.
-- [ ] La validación usa el último 20 % del periodo de entrenamiento, separado por tiempo y sin barajar.
-- [ ] Se genera una tabla de RMSE y MAE de validación por dataset y modelo, y el GBM queda mejor que el lineal en la mayoría de los casos.
-- [ ] Se incluye una figura de real contra predicho para un dataset de ejemplo.
-- [ ] Todo el Parque A se procesa en un bucle, sin ajustes manuales.
+## Fase 5: Entregables
+- [ ] `notebooks/main.ipynb` corre de principio a fin con `jupyter nbconvert --execute` sin errores y queda guardado con sus salidas.
+- [ ] `informe/informe.md` incluye los datos, la metodología, los resultados, la **respuesta directa a la pregunta** y las limitaciones. Cada cifra sale de `outputs/`.
 
-## Fase 3: Detección (~2 h)
-**Objetivo:** convertir el residuo en alarmas.
-
-Criterios de aceptación:
-- [ ] El residuo se estandariza con las estadísticas del entrenamiento y el puntaje es el máximo |z| entre los componentes.
-- [ ] El puntaje se suaviza con EWMA (α fijo, por ejemplo 0,05) y el umbral es un cuantil del EWMA en la validación, fijado sin mirar el periodo de predicción.
-- [ ] El contador de criticidad produce una detección por evento, con su fecha o "no detectado".
-- [ ] Se incluye una figura por cada caso de anomalía con el puntaje EWMA, el umbral, la primera detección y `event_start` marcados.
-- [ ] *(Opcional)* Se agrega CUSUM como alternativa si sobra tiempo.
-
-## Fase 4: Evaluación (~1,5 h)
-**Objetivo:** responder la pregunta con números.
-
-Criterios de aceptación:
-- [ ] Se calcula la **anticipación** de cada anomalía (`event_start − primera detección`, en días) y se reporta su mediana y rango.
-- [ ] Se calculan las **falsas alarmas** como el número de datasets normales con detección y el porcentaje de puntos con alarma.
-- [ ] Se calcula **CARE** con sus 4 subcomponentes para el modelo lineal y el GBM, usando la implementación oficial o una propia validada.
-- [ ] Una tabla final compara el modelo lineal, el GBM y los valores de referencia del paper.
-- [ ] Todas las tablas y figuras se guardan en `outputs/`.
-
-## Fase 5: Informe (~1,5 h)
-**Objetivo:** documentar los resultados.
-
-Criterios de aceptación:
-- [ ] El notebook corre de principio a fin con **Run All** sin errores en un entorno limpio.
-- [ ] El informe tiene 4 a 6 páginas con estas secciones: introducción, datos, metodología, resultados, discusión (incluida la respuesta directa a la pregunta) y limitaciones.
-- [ ] El informe declara qué fallas no se detectaron y por qué, por ejemplo cuando el componente no tiene sensor de temperatura.
-
----
-
-### Definición de terminado
-El proyecto está terminado cuando, al ejecutar el notebook, se obtiene una tabla con la anticipación, las falsas alarmas y CARE para el modelo lineal y el GBM, y el informe responde: *"El modelo detecta las fallas con una mediana de X días de anticipación, con Y falsas alarmas en los datasets normales y un CARE de Z."*
+**Terminado:** el informe contiene la frase *"Un modelo entrenado solo con operación sana detecta fallas con una mediana de X días de anticipación (n/N fallas detectadas, F falsas alarmas, CARE = Z)"*, con valores reales.
