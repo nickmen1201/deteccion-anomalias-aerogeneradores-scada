@@ -1,6 +1,6 @@
 # Plan de ejecución autónoma
 
-Claude ejecuta todas las fases seguidas, sin intervención del usuario. Cada criterio se comprueba ejecutando código y no se marca como cumplido sin evidencia. Si algún dato del CONTEXTO no coincide con los archivos reales, se corrige el CONTEXTO y se continúa.
+Se ejecutan las fases en orden y solo se continúa con la siguiente cuando se cumpla con cada requerimiento. Cada criterio se comprueba ejecutando código y no se marca como cumplido sin evidencia. Si algún dato del CONTEXTO no coincide con los archivos reales, se corrige el CONTEXTO y se continúa. Se da por terminado el proyecto cuando se haya cumplido con todas las fases, con un 100% de completitud en requerimientos.
 
 ```
 src/pipeline.py         # toda la lógica
