@@ -1,0 +1,12 @@
+rol,columna,nombre,descripcion_original
+entrada,power_30_avg,Potencia activa (normalizada),Grid power
+entrada,wind_speed_3_avg,Velocidad de viento (m/s),Windspeed
+entrada,sensor_0_avg,Temperatura ambiente (°C),Ambient temperature
+entrada,sensor_52_avg,Velocidad del rotor (rpm),Rotor rpm
+objetivo,sensor_11_avg,Rodamiento caja multiplicadora,Temperature in gearbox bearing on high speed shaft
+objetivo,sensor_12_avg,Aceite caja multiplicadora,Temperature oil in gearbox
+objetivo,sensor_13_avg,Rodamiento generador (lado acople),Temperature in generator bearing 2 (Drive End)
+objetivo,sensor_14_avg,Rodamiento generador (lado opuesto),Temperature in generator bearing 1 (Non-Drive End)
+objetivo,sensor_15_avg,Devanado estator fase 1,Temperature inside generator in stator windings phase 1
+objetivo,sensor_38_avg,Transformador fase L1,Temperature in HV transformer phase L1
+objetivo,sensor_41_avg,Aceite grupo hidráulico,Temperature oil in hydraulic group

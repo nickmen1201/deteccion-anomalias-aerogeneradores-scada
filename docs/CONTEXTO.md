@@ -37,6 +37,17 @@
 - **Referencias publicadas** (95 datasets, no solo el Parque A): "todo normal" y "todo anomalía" obtienen 0, el azar obtiene 0,5 (es el mínimo a superar) e Isolation Forest queda por debajo de 0,5. El autoencoder de los autores obtiene **0,66**.
 - Existe el paquete `energy-fault-detector` en PyPI (v0.8.1), del mismo grupo de autores. **Falta verificar** si trae una implementación de CARE. Si la trae, se usa esa. Si no, se implementa a partir de las fórmulas anteriores.
 
+## Verificado en los archivos (Fase 1)
+- **Descarga:** `src/download.py` baja solo `Wind Farm A/` del zip v6 mediante HTTP Range: 158 MB en lugar de 5,5 GB. La integridad se comprueba con el CRC32 de cada archivo dentro del zip. El md5 no aplica porque no se descarga el zip completo.
+- **Parque A:** 22 datasets, **12 anomalías y 10 normales** (`event_info.csv`). Las anomalías son: grupo hidráulico ×6, caja multiplicadora ×2, rodamiento del generador ×2, rodamientos de la caja ×1 y transformador ×1. Los CSV usan `;` como separador.
+- **Columnas de los CSV:** `time_stamp`, `asset_id`, `id`, `train_test` (`train` o `prediction`) y `status_type_id`. En el Parque A solo aparecen los estados 0, 3 y 4. **No hay estado 1 (derating)**, por lo que la potencia limitada se detecta como `power_30 < 0,9 · power_29` (potencia real frente a potencia posible).
+- **La potencia viene normalizada entre 0 y 1.** Sensores usados como entradas: `power_30_avg` (Grid power), `wind_speed_3_avg`, `sensor_0_avg` (Ambient temperature) y `sensor_52_avg` (Rotor rpm).
+- **CARE:** se usa el **código oficial** de `energy-fault-detector` 0.8.1 (Fraunhofer IEE, licencia MIT), vendorizado en `src/efd_care/` sin TensorFlow. Lo único que se cambió fueron los imports. Los casos de referencia "todo normal" y "todo anomalía" dan 0, como indica el paper.
+- **Ajustes según el código oficial:**
+  - `event_end` es el **inicio de la falla**, y la anticipación oficial es `event_end − primera vez que la criticidad ≥ 72`.
+  - El `normal_index` oficial es `status_type_id == 0`.
+  - En Earliness el peso empieza a decaer en 1/4 del evento (`ws_start_of_descend = (1, 4)`), no en la mitad como describe el texto del paper.
+
 ## Decisiones (lo más simple que sigue siendo válido)
 
 | Tema | Decisión | Motivo |
@@ -44,11 +55,11 @@
 | Alcance | Solo el Parque A (22 datasets) | Es el parque más pequeño y basta para responder la pregunta. |
 | Datos | Extraer del zip únicamente la carpeta del Parque A | Ahorra disco y tiempo. |
 | Limpieza para entrenar | `train_test == train`, `status_type_id == 0`, potencia > 0 y sin NaN | Elimina paradas y operación con potencia limitada (punto 1). |
-| Variable objetivo | Una temperatura de componente por dataset: la del componente dañado si `event_description` lo indica, y si no, una temperatura fija (p. ej. la de la caja multiplicadora) | Cumple el punto 2 tal como está redactado ("un componente"). |
-| Entradas | Potencia, viento, temperatura ambiente y velocidad del rotor | Son las que pide el punto 2. |
+| Variable objetivo | Las mismas 7 temperaturas de componentes en todas las turbinas, con un modelo por cada una: rodamiento y aceite de la caja, los 2 rodamientos del generador, el devanado, el transformador y el grupo hidráulico. **No se usa la etiqueta del evento.** | Si el objetivo se eligiera según la falla, la etiqueta del evento se filtraría al modelo. Así, además, los datasets normales se evalúan igual que los de anomalía. |
+| Entradas | Potencia, viento, temperatura ambiente y velocidad del rotor, más las medias móviles de 1 h y 6 h de la potencia y de la temperatura ambiente | Son las que pide el punto 2. Las medias móviles representan la inercia térmica. |
 | Modelos | `LinearRegression` frente a `HistGradientBoostingRegressor` (scikit-learn, sin ajuste de hiperparámetros) | Ya está instalado y cumple la comparación pedida. |
-| Detección | Residuo estandarizado → EWMA → umbral en el cuantil 99,5 del EWMA del entrenamiento | Un solo método cubre el punto 3. CUSUM es opcional. |
-| Evaluación | Anticipación = `event_start − primera alarma` (criticidad > 72), falsas alarmas en los datasets normales y CARE | Responde la pregunta y cubre el punto 4. |
+| Detección | Residuo estandarizado con las estadísticas de validación, EWMA (α = 0,05) por componente, puntaje = máximo de los EWMA en valor absoluto entre componentes, umbral = cuantil 99,5 del puntaje en validación. Todos los parámetros se fijan a priori. | Un solo método cubre el punto 3. CUSUM es opcional. |
+| Evaluación | Anticipación oficial = `event_end − primera vez que la criticidad ≥ 72`, falsas alarmas en los datasets normales y CARE oficial | Responde la pregunta y cubre el punto 4. |
 | Ejecución | Claude ejecuta todo de forma autónoma. Cada dato que no esté verificado se comprueba en los archivos antes de usarlo | Así se evita inventar información. |
 
 ## Formato del informe (entregable 2)

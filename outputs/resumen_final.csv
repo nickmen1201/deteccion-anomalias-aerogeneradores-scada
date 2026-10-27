@@ -1,0 +1,3 @@
+modelo,q,CARE,coverage,accuracy,reliability,earliness,anomalias_detectadas,anomalias_total,falsas_alarmas,normales_total,anticipacion_mediana_dias,anticipacion_min_dias,anticipacion_max_dias
+lineal,0.995,0.0,0.037802479120569304,0.9918205757779914,0.0,0.008840300968756985,0,12,0,10,,,
+gbm,0.995,0.0,0.027139006412829958,0.9889995430444973,0.0,0.004405218280464924,0,12,0,10,,,
