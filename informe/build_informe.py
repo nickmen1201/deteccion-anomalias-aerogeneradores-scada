@@ -29,7 +29,7 @@ TITLE = ("Detección temprana de anomalías en aerogeneradores con datos SCADA m
 AUTHOR = "Nicolás Meneses Marín"
 UNIVERSITY = "Universidad Pontificia Bolivariana"
 COURSE = "Integración de Energías Renovables No Convencionales a Sistemas de Potencia"
-TEACHERS = ["IDI A. Isaac Millan", "Jorge W. Gonzalez Sanchez", "Carlos E. Restrepo Mejia"]
+TEACHERS = ["Idi A. Isaac Millan", "Jorge W. Gonzalez Sanchez", "Carlos E. Restrepo Mejia"]
 MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
           "noviembre", "diciembre"]
 
