@@ -6,7 +6,8 @@ Claude ejecuta todas las fases seguidas, sin intervención del usuario. Cada cri
 src/pipeline.py         # toda la lógica
 notebooks/main.ipynb    # llama al pipeline y muestra los resultados (entregable 1)
 outputs/                # tablas (CSV) y figuras (PNG)
-informe/informe.md      # informe (entregable 2)
+informe/build_informe.py  # genera el .docx a partir de outputs/
+informe/informe.docx      # informe APA 7 (entregable 2)
 data/                   # el zip y el Parque A extraído (en .gitignore)
 requirements.txt
 ```
@@ -35,6 +36,8 @@ requirements.txt
 
 ## Fase 5: Entregables
 - [ ] `notebooks/main.ipynb` corre de principio a fin con `jupyter nbconvert --execute` sin errores y queda guardado con sus salidas.
-- [ ] `informe/informe.md` incluye los datos, la metodología, los resultados, la **respuesta directa a la pregunta** y las limitaciones. Cada cifra sale de `outputs/`.
+- [ ] `informe/build_informe.py` genera `informe/informe.docx` con estas secciones: portada de estudiante, introducción, datos, metodología, resultados, discusión con la **respuesta directa a la pregunta**, limitaciones y referencias. Cada cifra se toma de `outputs/`.
+- [ ] Se verifica automáticamente el formato del .docx: todo el texto en Arial 11, interlineado doble, márgenes de 2,54 cm, ningún texto en color, sin "—" ni "–", número de página en el encabezado y portada con los datos del CONTEXTO.
+- [ ] Antes de crear las figuras se carga la skill `dataviz`. Se revisa cada PNG final y se confirma que cada afirmación del texto sobre una figura se ve en ella.
 
 **Terminado:** el informe contiene la frase *"Un modelo entrenado solo con operación sana detecta fallas con una mediana de X días de anticipación (n/N fallas detectadas, F falsas alarmas, CARE = Z)"*, con valores reales.

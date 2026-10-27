@@ -51,6 +51,35 @@
 | Evaluación | Anticipación = `event_start − primera alarma` (criticidad > 72), falsas alarmas en los datasets normales y CARE | Responde la pregunta y cubre el punto 4. |
 | Ejecución | Claude ejecuta todo de forma autónoma. Cada dato que no esté verificado se comprueba en los archivos antes de usarlo | Así se evita inventar información. |
 
+## Formato del informe (entregable 2)
+
+**Datos de portada**
+- **Autor:** Nicolás Meneses Marín
+- **Universidad:** Universidad Pontificia Bolivariana
+- **Curso:** INTEGRACIÓN DE ENERGÍAS RENOVABLES NO CONVENCIONALES A SISTEMAS DE POTENCIA
+- **Docentes:** IDI A. ISAAC MILLAN, JORGE W. GONZALEZ SANCHEZ, CARLOS E. RESTREPO MEJIA
+- **Fecha:** la del día de entrega
+
+**Herramienta.** El informe será un documento **Word (.docx)** generado con `python-docx` mediante un script. Se descartó LaTeX porque no está instalado en el equipo y habría que pedirle al usuario que lo instale.
+
+**Norma: APA 7.ª edición, formato de trabajo de estudiante.**
+- Fuente **Arial 11 pt**. APA 7 acepta Arial en 11 pt, no en 12.
+- Interlineado doble, márgenes de 2,54 cm y sangría de 1,27 cm en la primera línea de cada párrafo.
+- Número de página en la esquina superior derecha.
+- Portada de estudiante con título, autor, institución, curso, docentes y fecha.
+- Títulos según los niveles de APA. Las tablas y figuras van numeradas y con título.
+- Referencias en formato APA con sangría francesa, citando al menos el paper y el dataset de Zenodo.
+
+**Restricciones del usuario (obligatorias)**
+- No se usan guiones largos (— ni –). En su lugar se usan comas, dos puntos o paréntesis.
+- Todo el texto va en negro, sin color.
+- La negrita se usa solo cuando es necesaria: títulos y rótulos de tablas y figuras. La cursiva se limita a lo que exige APA (títulos de tablas y figuras y nombres de fuentes en las referencias).
+
+**Gráficas**
+- Antes de crear cualquier gráfica se carga la skill `dataviz`.
+- Cada figura tiene un solo mensaje, ejes con nombre y unidades, texto legible al tamaño en que se imprime, se exporta a 300 dpi y se puede leer en escala de grises.
+- **Toda conclusión que el texto saque de una figura debe verse directamente en ella.** Si no se ve, se cambia la figura o se elimina la afirmación.
+
 ## Fuentes
 - Paper: https://arxiv.org/abs/2404.10320
 - Zenodo v6: https://zenodo.org/records/15846963
